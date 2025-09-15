@@ -112,6 +112,13 @@ android {
         debug {
             signingConfig signingConfigs.debug
         }
+
+        releaseWithDebugInfo {
+            initWith release
+            ndk {
+                debugSymbolLevel 'FULL'
+            }
+        }
     }
 
     compileOptions {
