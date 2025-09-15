@@ -10,7 +10,7 @@ ext {
     // by replacing $PREFIX since app code is dependant on the variant used to build the APK.
     // Currently supported values are: [ "apt-android-7" "apt-android-5" ]
     packageVariant = System.getenv("TERMUX_PACKAGE_VARIANT") ?: "apt-android-7" // Default: "apt-android-7"
-    bootstrapMinSdk = packageVariant == "apt-android-5" ? 21 : 24
+    bootstrapMinSdk = packageVariant == "apt-android-5" ? 21 : 26
     bootstrapMinRelease = packageVariant == "apt-android-5" ? "5.0" : "7.0"
     bootstrapMaxSdk = packageVariant == "apt-android-5" ? 23 : null
     bootstrapMaxRelease = packageVariant == "apt-android-5" ? "6.0" : null
