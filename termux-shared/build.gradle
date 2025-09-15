@@ -2,6 +2,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'maven-publish'
 
 android {
+    namespace "com.termux.shared"
     compileSdkVersion project.properties.compileSdkVersion.toInteger()
 
     dependencies {
@@ -52,8 +53,8 @@ android {
         // Flag to enable support for the new language APIs
         coreLibraryDesugaringEnabled true
 
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
     externalNativeBuild {
         ndkBuild {
@@ -71,7 +72,7 @@ dependencies {
 
 task sourceJar(type: Jar) {
     from android.sourceSets.main.java.srcDirs
-    classifier "sources"
+    //classifier "sources"
 }
 
 afterEvaluate {
@@ -79,7 +80,7 @@ afterEvaluate {
         publications {
             // Creates a Maven publication called "release".
             release(MavenPublication) {
-                from components.release
+                //from components.release
                 groupId = 'com.termux'
                 artifactId = 'termux-shared'
                 version = '0.118.0'

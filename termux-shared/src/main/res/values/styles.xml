@@ -64,4 +64,7 @@
         <item name="android:background">?android:attr/listDivider</item>
     </style>
 
+    <style name="TermuxLightDialogAlert" parent="Theme.AppCompat.Light.Dialog.Alert">
+    </style>
+
 </resources>
