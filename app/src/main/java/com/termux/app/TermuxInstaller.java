@@ -10,8 +10,8 @@ import android.system.Os;
 import android.util.Pair;
 import android.view.WindowManager;
 
-import com.termux.BuildConfig;
-import com.termux.R;
+import greater.underscore.BuildConfig;
+import greater.underscore.R;
 import com.termux.shared.file.FileUtils;
 import com.termux.shared.shell.command.ExecutionCommand;
 import com.termux.shared.shell.command.runner.app.AppShell;
