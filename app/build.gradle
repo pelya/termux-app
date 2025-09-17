@@ -58,8 +58,8 @@ sourceSets {
         applicationId "greater.underscore"
         minSdk buildMinSdk
         targetSdk buildTargetSdk
-        versionCode 1022
-        versionName "0.119.0-beta.3"
+        versionCode 1024
+        versionName "0.119.0-beta.4"
 
         if (appVersionName) versionName = appVersionName
         validateVersionName(versionName)
