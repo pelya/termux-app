@@ -129,6 +129,15 @@ final class TermuxInstaller {
             @Override
             public void run() {
                 try {
+                    String exeSymlink = new File(TERMUX_PREFIX_DIR_PATH + "/../../exe").getAbsolutePath();
+                    Logger.logInfo(LOG_TAG, "Creating symlink to shared libraries directory: " + activity.getApplicationInfo().nativeLibraryDir);
+                    Logger.logInfo(LOG_TAG, "Destination: " + exeSymlink);
+                    try {
+                        Os.remove(exeSymlink);
+                    } catch (final Exception e) {
+                    }
+                    Os.symlink(activity.getApplicationInfo().nativeLibraryDir, exeSymlink);
+
                     Logger.logInfo(LOG_TAG, "Installing " + TermuxConstants.TERMUX_APP_NAME + " bootstrap packages.");
 
                     Error error;
