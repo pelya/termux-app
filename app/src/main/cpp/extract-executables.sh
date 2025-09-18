@@ -16,7 +16,7 @@ for ARCH in $ARCH_LIST; do
 		NDK_ARCH=x86
 	fi
 
-	if [ -e "bootstrap-noexe-$ARCH.zip" ]; then
+	if [ -e "bootstrap-noexe-$ARCH.zip" -a "bootstrap-noexe-$ARCH.zip" -nt "bootstrap-$ARCH.zip" ]; then
 		echo "Executables already extracted from bootstrap-$ARCH.zip"
 		continue
 	fi
