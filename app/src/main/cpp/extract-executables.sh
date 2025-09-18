@@ -23,6 +23,8 @@ for ARCH in $ARCH_LIST; do
 
 	echo "Extracting executables: bootstrap-$ARCH.zip → exe/$NDK_ARCH bootstrap-noexe-$ARCH.zip"
 
+	touch termux-bootstrap.c # force rebuild of libtermux-bootstrap
+
 	rm -rf exe/$NDK_ARCH usr EXECUTABLES-$NDK_ARCH.txt
 	mkdir -p exe/$NDK_ARCH usr
 	cd usr
