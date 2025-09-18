@@ -283,7 +283,7 @@ public class PermissionUtils {
         Logger.logVerbose(LOG_TAG, "Checking storage permission");
 
         String errmsg;
-        Boolean requestLegacyStoragePermission = null;
+        Boolean requestLegacyStoragePermission = false;
 
         if (prioritizeManageExternalStoragePermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
             requestLegacyStoragePermission = false;
