@@ -288,6 +288,8 @@ final class TermuxInstaller {
                     // Recreate env file since termux prefix was wiped earlier
                     TermuxShellEnvironment.writeEnvironmentToFile(activity);
 
+                    setupStorageSymlinks(activity);
+
                     activity.runOnUiThread(whenDone);
 
                 } catch (final Exception e) {

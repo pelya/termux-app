@@ -64,8 +64,13 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.viewpager.widget.ViewPager;
+import androidx.documentfile.provider.DocumentFile;
 
 import java.util.Arrays;
+import java.util.UUID;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Paths;
 
 /**
  * A terminal emulator activity.
@@ -174,6 +179,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     private int mNavBarHeight;
 
     private float mTerminalToolbarDefaultHeight;
+
+    /** Working directory where termux-setup-storage was launched */
+    private String mSetupStorageDir = null;
 
 
     private static final int CONTEXT_MENU_SELECT_URL_ID = 0;
@@ -789,13 +797,60 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         }.start();
     }
 
+    protected void copyFromScopedStorageToFilesystem(DocumentFile tree) {
+        Logger.logInfo(LOG_TAG, "Scanning directory " + tree.getName() + " " + tree.getUri());
+        DocumentFile fileList[] = tree.listFiles();
+        if (fileList == null)
+            return;
+
+        for (DocumentFile f: fileList) {
+            try {
+                if (f.isFile()) {
+                    Logger.logInfo(LOG_TAG, "Found file " + f.getName() + " " + f.getUri());
+                    DocumentFile copy = tree.createFile(f.getType(), UUID.randomUUID().toString());
+                    Logger.logInfo(LOG_TAG, "Copying to file: " + copy.getName() + " " + copy.getUri());
+                    InputStream in = getContentResolver().openInputStream(f.getUri());
+                    OutputStream out = getContentResolver().openOutputStream(copy.getUri());
+                    in.transferTo(out);
+                    in.close();
+                    out.close();
+                    String name = f.getName();
+                    f.delete();
+                    copy.renameTo(name);
+                    Logger.logInfo(LOG_TAG, "Replaced file " + name);
+                }
+                if (f.isDirectory()) {
+                    copyFromScopedStorageToFilesystem(f);
+                }
+            } catch (Exception e) {
+                Logger.logErrorAndShowToast((Context) this, LOG_TAG, e.getMessage());
+                Logger.logStackTraceWithMessage(LOG_TAG, "Setup Storage Error: Error copying file", e);
+            }
+        }
+        Logger.logInfo(LOG_TAG, "Scanning directory finished");
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        Logger.logVerbose(LOG_TAG, "onActivityResult: requestCode: " + requestCode + ", resultCode: "  + resultCode + ", data: "  + IntentUtils.getIntentString(data));
+        Logger.logInfo(LOG_TAG, "========");
+        Logger.logInfo(LOG_TAG, "onActivityResult: requestCode: " + requestCode + ", resultCode: "  + resultCode + ", data: "  + IntentUtils.getIntentString(data));
         if (requestCode == PermissionUtils.REQUEST_GRANT_STORAGE_PERMISSION) {
+            if (resultCode == RESULT_OK && data != null && data.getData() != null) {
+                Logger.logInfo(LOG_TAG, "onActivityResult: data.getData(): " + data.getData());
+                getContentResolver().takePersistableUriPermission(data.getData(),
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+
+                DocumentFile tree = DocumentFile.fromTreeUri(this, data.getData());
+                //copyFromScopedStorageToFilesystem(tree);
+                if (mSetupStorageDir != null) {
+                    Logger.logInfo(LOG_TAG, "Directory of termux-setup-storage command: " + mSetupStorageDir);
+
+                }
+            }
             requestStoragePermission(true);
         }
+        Logger.logInfo(LOG_TAG, "========");
     }
 
     @Override
@@ -957,6 +1012,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                         return;
                     case TERMUX_ACTIVITY.ACTION_REQUEST_PERMISSIONS:
                         Logger.logDebug(LOG_TAG, "Received intent to request storage permissions");
+                        mSetupStorageDir = intent.getStringExtra(TERMUX_ACTIVITY.EXTRA_CURRENT_DIR);
                         requestStoragePermission(false);
                         return;
                     default:

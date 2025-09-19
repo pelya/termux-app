@@ -243,8 +243,8 @@ task downloadBootstraps() {
     doLast {
         def packageVariant = project.ext.packageVariant
         if (packageVariant == "apt-android-7") {
-            def version =  "2025.09.18-pelya3" + "+" + packageVariant
-            downloadBootstrap("aarch64", "f73a2ed9bd706d7fb25bc4c3957f7085742f2bc13f425c48b1def573d8bd0cb6", version)
+            def version =  "2025.09.19-pelya1" + "+" + packageVariant
+            downloadBootstrap("aarch64", "81df814e1aa426e8f849b29be3424dced234d998f6b6ff5686eb20f3d3a4e3d9", version)
             downloadBootstrap("arm",     "f3bb9d1b32552b34fff41861dbf193ec5ba2848d67d779ac1c7256da6640f85d", version)
             downloadBootstrap("i686",    "36db3e1ac3547f9a174fd763bd9a484fa1a3449cdd81e1cf2408ff0454f839c6", version)
             downloadBootstrap("x86_64",  "1c124ec2396ee70a51b0b0a574f29aa659526aa2b9f558f993b2fb05d1e51855", version)

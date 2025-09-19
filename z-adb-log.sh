@@ -1,4 +1,4 @@
 #!/bin/sh
 
 
-adb logcat -e 'Termux|[>]_|greater.underscore'
+adb logcat | grep 'Termux\|[>]_'
