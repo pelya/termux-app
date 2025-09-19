@@ -12,6 +12,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.os.PowerManager;
+import android.os.storage.StorageManager;
 import android.provider.Settings;
 
 import androidx.annotation.NonNull;
@@ -287,8 +288,13 @@ public class PermissionUtils {
         }
 
         if (!Arrays.asList(permissions).contains("android.permission.MANAGE_EXTERNAL_STORAGE")) {
-            requestManageScopedStorage(context, requestCode);
-            return false;
+            // This function is called twice, first time on request, second time on activity result,
+            // but we don't need to show the file picker on the second time
+            if (showErrorMessage) {
+                requestManageScopedStorage(context, requestCode);
+                return false;
+            }
+            return true;
         }
 
         Logger.logVerbose(LOG_TAG, "Checking storage permission");
@@ -424,10 +430,13 @@ public class PermissionUtils {
     }
 
     public static Error requestManageScopedStorage(@NonNull Context context, int requestCode) {
-        Logger.logInfo(LOG_TAG, "Requesting scoped storage access to a specific directory");
+        Logger.logInfo(LOG_TAG, "Requesting scoped storage access to a directory tree, requestCode " + String.valueOf(requestCode));
 
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-        //intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, uriToLoad);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            StorageManager storageManager = (StorageManager) context.getSystemService(Context.STORAGE_SERVICE);
+            intent = storageManager.getPrimaryStorageVolume().createOpenDocumentTreeIntent();
+        }
 
         Error error = null;
         if (requestCode >=0)
