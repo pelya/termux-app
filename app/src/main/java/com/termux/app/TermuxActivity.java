@@ -6,6 +6,7 @@ import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
@@ -20,11 +21,13 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
+import android.util.TypedValue;
 
 import greater.underscore.R;
 import com.termux.app.api.file.FileReceiverActivity;
@@ -830,6 +833,49 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         Logger.logInfo(LOG_TAG, "Scanning directory finished");
     }
 
+    protected void askCopyMoveFilesScopedStorage (DocumentFile tree) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(tree.getName());
+        builder.setIcon(R.drawable.ic_foreground);
+        builder.setMessage(String.valueOf(tree.listFiles().length) +
+            " files are present in " + tree.getName() + ".\n" +
+            "You will need to move or copy them to use them from the terminal.\n" +
+            "You can move files to the same folder.\nDestination:\n" +
+            mSetupStorageDir);
+
+        builder.setPositiveButton("Move", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                //copyFromScopedStorageToFilesystem(tree);
+                dialog.cancel();
+            }
+        });
+
+        builder.setNegativeButton("Copy", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                //copyFromScopedStorageToFilesystem(tree);
+                dialog.cancel();
+            }
+        });
+
+        builder.setNeutralButton("Cancel", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                dialog.cancel();
+            }
+        });
+
+        AlertDialog alert = builder.create();
+        alert.show();
+
+        TypedValue fgColor = new TypedValue();
+        getTheme().resolveAttribute(android.R.attr.colorAccent, fgColor, true);
+        Button btn = alert.getButton(DialogInterface.BUTTON_POSITIVE);
+        btn.setTextColor(fgColor.data);
+        btn = alert.getButton(DialogInterface.BUTTON_NEUTRAL);
+        btn.setTextColor(fgColor.data);
+        btn = alert.getButton(DialogInterface.BUTTON_NEGATIVE);
+        btn.setTextColor(fgColor.data);
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -842,10 +888,11 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                     Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
 
                 DocumentFile tree = DocumentFile.fromTreeUri(this, data.getData());
-                //copyFromScopedStorageToFilesystem(tree);
                 if (mSetupStorageDir != null) {
                     Logger.logInfo(LOG_TAG, "Directory of termux-setup-storage command: " + mSetupStorageDir);
-
+                    if (tree.listFiles().length > 0) {
+                        askCopyMoveFilesScopedStorage(tree);
+                    }
                 }
             }
             requestStoragePermission(true);
