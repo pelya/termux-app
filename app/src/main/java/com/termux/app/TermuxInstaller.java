@@ -113,16 +113,30 @@ final class TermuxInstaller {
         }
 
         String exeSymlink = new File(TERMUX_PREFIX_DIR_PATH + "/../../exe").getAbsolutePath();
-        Logger.logInfo(LOG_TAG, "Creating symlink to shared libraries directory: " + activity.getApplicationInfo().nativeLibraryDir);
-        Logger.logInfo(LOG_TAG, "Destination: " + exeSymlink);
+        String oldExeSymlink = "";
+
         try {
-            Os.remove(exeSymlink);
+            oldExeSymlink = Os.readlink(exeSymlink);
         } catch (final Exception e) {
         }
-        try {
-            Os.symlink(activity.getApplicationInfo().nativeLibraryDir, exeSymlink);
-        } catch (final Exception ee) {
+
+        if (!oldExeSymlink.equals(activity.getApplicationInfo().nativeLibraryDir)) {
+            Logger.logInfo(LOG_TAG, "Creating symlink to executables directory: " +
+                activity.getApplicationInfo().nativeLibraryDir + " at " + exeSymlink);
+            try {
+                Os.remove(exeSymlink);
+            } catch (final Exception ee) {
+            }
+            try {
+                Os.symlink(activity.getApplicationInfo().nativeLibraryDir, exeSymlink);
+            } catch (final Exception eee) {
+            }
+        } else {
+            Logger.logInfo(LOG_TAG, "Symlink to executables directory already created: " +
+                activity.getApplicationInfo().nativeLibraryDir + " at " + exeSymlink);
         }
+
+        // TODO: overwrite individual files instead of deleting /usr to support .apk version update
 
         // If prefix directory exists, even if its a symlink to a valid directory and symlink is not broken/dangling
         if (FileUtils.directoryFileExists(TERMUX_PREFIX_DIR_PATH, true)) {

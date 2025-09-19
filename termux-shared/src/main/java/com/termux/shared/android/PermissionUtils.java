@@ -280,10 +280,21 @@ public class PermissionUtils {
                                                                                  int requestCode,
                                                                                  boolean prioritizeManageExternalStoragePermission,
                                                                                  boolean showErrorMessage) {
+        String[] permissions = {};
+        try {
+            permissions = context.getPackageManager().getPackageInfo(context.getPackageName(), PackageManager.GET_PERMISSIONS).requestedPermissions;
+        } catch (Exception e) {
+        }
+
+        if (!Arrays.asList(permissions).contains("android.permission.MANAGE_EXTERNAL_STORAGE")) {
+            requestManageScopedStorage(context, requestCode);
+            return false;
+        }
+
         Logger.logVerbose(LOG_TAG, "Checking storage permission");
 
         String errmsg;
-        Boolean requestLegacyStoragePermission = false;
+        Boolean requestLegacyStoragePermission = null;
 
         if (prioritizeManageExternalStoragePermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
             requestLegacyStoragePermission = false;
@@ -410,6 +421,21 @@ public class PermissionUtils {
         }
 
         return null;
+    }
+
+    public static Error requestManageScopedStorage(@NonNull Context context, int requestCode) {
+        Logger.logInfo(LOG_TAG, "Requesting scoped storage access to a specific directory");
+
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        //intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, uriToLoad);
+
+        Error error = null;
+        if (requestCode >=0)
+            error = ActivityUtils.startActivityForResult(context, requestCode, intent, true, false);
+        else
+            error = ActivityUtils.startActivity(context, intent, true, false);
+
+        return error;
     }
 
     /**
