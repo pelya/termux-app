@@ -53,6 +53,7 @@ for ARCH in $ARCH_LIST; do
 	#mv -f ../EXECUTABLES-$NDK_ARCH.txt EXECUTABLES.txt
 
 	zip -q -r ../bootstrap-noexe-$ARCH.zip .
+	cp -f ../bootstrap-noexe-$ARCH.zip ../exe/$NDK_ARCH/libtermux-bootstrap.so
 	cd ..
 done
 
