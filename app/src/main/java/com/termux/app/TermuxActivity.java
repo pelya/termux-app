@@ -70,10 +70,10 @@ import androidx.viewpager.widget.ViewPager;
 import androidx.documentfile.provider.DocumentFile;
 
 import java.util.Arrays;
-import java.util.UUID;
+import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.file.Paths;
+import java.io.FileOutputStream;
 
 /**
  * A terminal emulator activity.
@@ -800,8 +800,12 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         }.start();
     }
 
-    protected void copyFromScopedStorageToFilesystem(DocumentFile tree) {
-        Logger.logInfo(LOG_TAG, "Scanning directory " + tree.getName() + " " + tree.getUri());
+    protected void copyFromScopedStorageToFilesystem(DocumentFile tree, String destination, boolean deleteOriginal) {
+        Logger.logInfo(LOG_TAG, "Copying/moving files from directory " + tree.getName() + " " + tree.getUri());
+
+        File destDir = new File(destination);
+        destDir.mkdirs();
+
         DocumentFile fileList[] = tree.listFiles();
         if (fileList == null)
             return;
@@ -810,27 +814,30 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             try {
                 if (f.isFile()) {
                     Logger.logInfo(LOG_TAG, "Found file " + f.getName() + " " + f.getUri());
-                    DocumentFile copy = tree.createFile(f.getType(), UUID.randomUUID().toString());
-                    Logger.logInfo(LOG_TAG, "Copying to file: " + copy.getName() + " " + copy.getUri());
+                    File copy = File.createTempFile("tmx", null, destDir);
+                    Logger.logInfo(LOG_TAG, "Copying to file: " + copy.getAbsolutePath());
                     InputStream in = getContentResolver().openInputStream(f.getUri());
-                    OutputStream out = getContentResolver().openOutputStream(copy.getUri());
+                    OutputStream out = new FileOutputStream(copy);
                     in.transferTo(out);
                     in.close();
                     out.close();
                     String name = f.getName();
-                    f.delete();
-                    copy.renameTo(name);
-                    Logger.logInfo(LOG_TAG, "Replaced file " + name);
+                    if (deleteOriginal) {
+                        f.delete();
+                        Logger.logInfo(LOG_TAG, "Deleted original file " + name);
+                    }
+                    copy.renameTo(new File(destDir, name));
+                    Logger.logInfo(LOG_TAG, "Renamed new file to " + name);
                 }
                 if (f.isDirectory()) {
-                    copyFromScopedStorageToFilesystem(f);
+                    copyFromScopedStorageToFilesystem(f, destination + "/" + f.getName(), deleteOriginal);
                 }
             } catch (Exception e) {
                 Logger.logErrorAndShowToast((Context) this, LOG_TAG, e.getMessage());
                 Logger.logStackTraceWithMessage(LOG_TAG, "Setup Storage Error: Error copying file", e);
             }
         }
-        Logger.logInfo(LOG_TAG, "Scanning directory finished");
+        Logger.logInfo(LOG_TAG, "Copying/moving files from " + tree.getName() + " finished");
     }
 
     protected void askCopyMoveFilesScopedStorage (DocumentFile tree) {
@@ -839,21 +846,33 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         builder.setIcon(R.drawable.ic_foreground);
         builder.setMessage(String.valueOf(tree.listFiles().length) +
             " files are present in " + tree.getName() + ".\n" +
-            "You will need to move or copy them to use them from the terminal.\n" +
-            "You can move files to the same folder.\nDestination:\n" +
+            "You will need to move or copy them to use them from " +
+            TermuxConstants.TERMUX_APP_NAME + ".\n" +
+            "You can move files to the same folder.\n" +
+            "Destination:\n" +
             mSetupStorageDir);
 
         builder.setPositiveButton("Move", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
-                //copyFromScopedStorageToFilesystem(tree);
                 dialog.cancel();
+                new Thread() {
+                    public void run() {
+                        copyFromScopedStorageToFilesystem(tree, mSetupStorageDir, true);
+                        Logger.showToast(TermuxActivity.this, "Moving files finished", true);
+                    }
+                }.start();
             }
         });
 
         builder.setNegativeButton("Copy", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
-                //copyFromScopedStorageToFilesystem(tree);
                 dialog.cancel();
+                new Thread() {
+                    public void run() {
+                        copyFromScopedStorageToFilesystem(tree, mSetupStorageDir, false);
+                        Logger.showToast(TermuxActivity.this, "Copying files finished", true);
+                    }
+                }.start();
             }
         });
 
