@@ -243,4 +243,6 @@
     <!-- Donate Preference -->
     <string name="donate_preference_title">Donate</string>
 
+    <string name="packages_pkg1">pkg1</string>
+
 </resources>
