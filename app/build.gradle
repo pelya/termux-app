@@ -166,7 +166,7 @@ android {
         }
     }
 
-    dynamicFeatures = [":packages:pkg1"]
+    dynamicFeatures = [":packages:pkg1", ":packages:pkg2"]
 }
 
 dependencies {

@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace "greater.underscore.pkg1"
+    namespace "greater.underscore.pkg0"
 
     compileSdkVersion project.properties.compileSdkVersion.toInteger()
 

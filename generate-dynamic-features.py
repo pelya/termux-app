@@ -1,11 +1,11 @@
 #!/usr/bin/python
 
 from tempfile import mkstemp
-from shutil import move, copymode
-from os import fdopen, remove
+from shutil import move, copymode, copytree, rmtree
+from os import fdopen, remove, makedirs
 import re
 
-NUM_PKGS = 1
+NUM_PKGS = 2
 
 def replace(file_path, pattern, subst):
     #Create temp file
@@ -35,3 +35,43 @@ app += ']\n'
 
 print(app)
 replace('app/build.gradle', re.compile(r' *dynamicFeatures =.*'), app)
+
+strs = ""
+
+for i in range(1, NUM_PKGS + 1):
+	strs += f'    <string name="packages_pkg{i}">pkg{i}</string>\n'
+
+strs += "</resources>\n"
+
+print(strs)
+
+replace('app/src/main/res/values/strings.xml', re.compile(r' *<string name="packages_.*'), "")
+replace('app/src/main/res/values/strings.xml', re.compile(r'</resources>.*'), strs)
+
+inc = 'include '
+for i in range(1, NUM_PKGS + 1):
+	inc += f"':packages:pkg{i}'"
+	if i < NUM_PKGS:
+		inc += ', '
+
+inc += '\n'
+
+print(inc)
+replace('settings.gradle', re.compile(r"include ':packages:.*"), inc)
+
+urandom = open('/dev/urandom', 'rb')
+
+for i in range(1, NUM_PKGS + 1):
+	rmtree(f'packages/pkg{i}', ignore_errors=True)
+	copytree('packages/pkg-template', f'packages/pkg{i}')
+	replace(f'packages/pkg{i}/build.gradle', re.compile(r' *namespace .*'),
+		f'    namespace "greater.underscore.pkg{i}"\n')
+	replace(f'packages/pkg{i}/src/main/AndroidManifest.xml', re.compile(r' *dist:title=.*'),
+		f'        dist:title="@string/packages_pkg{i}"\n')
+	for arch in ['arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64']:
+		makedirs(f'packages/pkg{i}/exe/{arch}', exist_ok=True)
+		genlib = open(f'packages/pkg{i}/exe/{arch}/libpkg{i}-0.so', 'wb')
+		genlib.write(urandom.read(1024))
+		genlib.close()
+
+urandom.close()

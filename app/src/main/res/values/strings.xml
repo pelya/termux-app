@@ -244,5 +244,5 @@
     <string name="donate_preference_title">Donate</string>
 
     <string name="packages_pkg1">pkg1</string>
-
+    <string name="packages_pkg2">pkg2</string>
 </resources>
