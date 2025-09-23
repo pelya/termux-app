@@ -1,5 +1,6 @@
 plugins {
     id "com.android.application"
+    id 'com.github.triplet.play' version '3.12.1'
 }
 
 ext {
@@ -59,8 +60,8 @@ android {
         applicationId "greater.underscore"
         minSdk buildMinSdk
         targetSdk buildTargetSdk
-        versionCode 1030
-        versionName "0.119.0-beta.10"
+        versionCode 1032
+        versionName "0.119.0-beta.12"
 
         if (appVersionName) versionName = appVersionName
         validateVersionName(versionName)
@@ -103,10 +104,17 @@ android {
             storePassword 'xrj45yWGLbsO7W0v'
             keyPassword 'xrj45yWGLbsO7W0v'
         }
+        release {
+            storeFile file(System.getenv("ANDROID_UPLOAD_KEYSTORE_FILE"))
+            keyAlias System.getenv("ANDROID_UPLOAD_KEYSTORE_ALIAS")
+            storePassword new File(System.getenv("ANDROID_UPLOAD_KEYSTORE_PASS_FILE")).getText('UTF-8')
+            keyPassword new File(System.getenv("ANDROID_UPLOAD_KEYSTORE_PASS_FILE")).getText('UTF-8')
+        }
     }
 
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled true
             shrinkResources false // Reproducible builds
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
@@ -273,4 +281,9 @@ afterEvaluate {
     android.applicationVariants.all { variant ->
         variant.javaCompileProvider.get().dependsOn(downloadBootstraps)
     }
+}
+
+play {
+    serviceAccountCredentials.set(file(System.getenv("ANDROID_PUBLISHING_ACCOUNT_CREDENTIALS")))
+    track.set("alpha")
 }
