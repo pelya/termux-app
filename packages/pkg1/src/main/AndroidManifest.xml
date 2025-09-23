@@ -1,7 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:dist="http://schemas.android.com/apk/distribution"
-    android:isFeatureSplit="true"
-    split="pkg1">
+    android:isFeatureSplit="true">
     <dist:module
         dist:instant="false"
         dist:title="@string/packages_pkg1">
