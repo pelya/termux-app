@@ -5,7 +5,7 @@ from shutil import move, copymode, copytree, rmtree
 from os import fdopen, remove, makedirs
 import re
 
-NUM_PKGS = 2
+NUM_PKGS = 127
 
 def replace(file_path, pattern, subst):
     #Create temp file
@@ -48,16 +48,14 @@ print(strs)
 replace('app/src/main/res/values/strings.xml', re.compile(r' *<string name="packages_.*'), "")
 replace('app/src/main/res/values/strings.xml', re.compile(r'</resources>.*'), strs)
 
-inc = 'include '
+inc = ''
 for i in range(1, NUM_PKGS + 1):
-	inc += f"':packages:pkg{i}'"
-	if i < NUM_PKGS:
-		inc += ', '
-
-inc += '\n'
+	inc += f"include ':packages:pkg{i}'\n"
 
 print(inc)
-replace('settings.gradle', re.compile(r"include ':packages:.*"), inc)
+replace('settings.gradle', re.compile(r"include ':packages:.*"), '')
+with open('settings.gradle', 'ab') as settings:
+	settings.write(inc.encode('utf-8'))
 
 urandom = open('/dev/urandom', 'rb')
 
