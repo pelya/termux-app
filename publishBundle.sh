@@ -1,6 +1,8 @@
 #!/bin/sh
 
-APPNAME=termux-app
-APPVER=`grep -m 1 versionName app/build.gradle | sed 's/versionName//' | tr -d '" '`
+rm -rf tmp
+mkdir -p tmp
+export GRADLE_OPTS="-Djava.io.tmpdir=`pwd`/tmp"
 
-./gradlew publishReleaseBundle
+./gradlew --stop
+./gradlew publishReleaseBundle 2>&1 | tee publishBundle.log

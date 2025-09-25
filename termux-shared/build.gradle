@@ -48,13 +48,6 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
-
-        releaseWithDebugInfo {
-            initWith release
-            ndk {
-                debugSymbolLevel 'FULL'
-            }
-        }
     }
 
     compileOptions {

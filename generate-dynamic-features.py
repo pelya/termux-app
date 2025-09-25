@@ -6,6 +6,7 @@ from os import fdopen, remove, makedirs
 import re
 
 NUM_PKGS = 127
+TOTAL_SIZE = 2000
 
 def replace(file_path, pattern, subst):
     #Create temp file
@@ -66,10 +67,16 @@ for i in range(1, NUM_PKGS + 1):
 		f'    namespace "greater.underscore.pkg{i}"\n')
 	replace(f'packages/pkg{i}/src/main/AndroidManifest.xml', re.compile(r' *dist:title=.*'),
 		f'        dist:title="@string/packages_pkg{i}"\n')
+	print(f'pkg{i}')
 	for arch in ['arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64']:
 		makedirs(f'packages/pkg{i}/exe/{arch}', exist_ok=True)
-		genlib = open(f'packages/pkg{i}/exe/{arch}/libpkg{i}-0.so', 'wb')
-		genlib.write(urandom.read(1024))
+		genlib = open(f'packages/pkg{i}/exe/{arch}/libpkg{i}-placeholder.so', 'wb')
+		genlib.write(urandom.read(32))
 		genlib.close()
+	for arch in ['arm64-v8a']:
+		for ii in range(TOTAL_SIZE // NUM_PKGS):
+			genlib = open(f'packages/pkg{i}/exe/{arch}/libpkg{i}-{ii}.so', 'wb')
+			genlib.write(urandom.read(1024 * 1024))
+			genlib.close()
 
 urandom.close()

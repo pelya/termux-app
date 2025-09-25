@@ -31,10 +31,6 @@ android {
                 doNotStrip '**/*.so'
             }
         }
-
-        releaseWithDebugInfo {
-            initWith release
-        }
     }
 
     compileOptions {

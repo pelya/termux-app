@@ -60,8 +60,8 @@ android {
         applicationId "greater.underscore"
         minSdk buildMinSdk
         targetSdk buildTargetSdk
-        versionCode 1032
-        versionName "0.119.0-beta.12"
+        versionCode 1033
+        versionName "0.119.0-beta.13"
 
         if (appVersionName) versionName = appVersionName
         validateVersionName(versionName)
@@ -127,13 +127,6 @@ android {
             signingConfig signingConfigs.debug
             packagingOptions {
                 doNotStrip '**/*.so'
-            }
-        }
-
-        releaseWithDebugInfo {
-            initWith release
-            ndk {
-                debugSymbolLevel 'FULL'
             }
         }
     }
