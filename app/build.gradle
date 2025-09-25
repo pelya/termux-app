@@ -60,8 +60,8 @@ android {
         applicationId "greater.underscore"
         minSdk buildMinSdk
         targetSdk buildTargetSdk
-        versionCode 1033
-        versionName "0.119.0-beta.13"
+        versionCode 1034
+        versionName "0.119.0-beta.14"
 
         if (appVersionName) versionName = appVersionName
         validateVersionName(versionName)

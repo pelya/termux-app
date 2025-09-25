@@ -6,7 +6,7 @@ from os import fdopen, remove, makedirs
 import re
 
 NUM_PKGS = 127
-TOTAL_SIZE = 2000
+TOTAL_SIZE = 2800
 
 def replace(file_path, pattern, subst):
     #Create temp file
