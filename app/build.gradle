@@ -60,8 +60,8 @@ android {
         applicationId "greater.underscore"
         minSdk buildMinSdk
         targetSdk buildTargetSdk
-        versionCode 1034
-        versionName "0.119.0-beta.14"
+        versionCode 1035
+        versionName "0.119.0-beta.15"
 
         if (appVersionName) versionName = appVersionName
         validateVersionName(versionName)
@@ -104,17 +104,20 @@ android {
             storePassword 'xrj45yWGLbsO7W0v'
             keyPassword 'xrj45yWGLbsO7W0v'
         }
+        /*
+        // Disabled because signing the bundle with Gradle makes it run out of RAM and crash
         release {
             storeFile file(System.getenv("ANDROID_UPLOAD_KEYSTORE_FILE"))
             keyAlias System.getenv("ANDROID_UPLOAD_KEYSTORE_ALIAS")
             storePassword new File(System.getenv("ANDROID_UPLOAD_KEYSTORE_PASS_FILE")).getText('UTF-8')
             keyPassword new File(System.getenv("ANDROID_UPLOAD_KEYSTORE_PASS_FILE")).getText('UTF-8')
         }
+        */
     }
 
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            //signingConfig signingConfigs.release
             minifyEnabled true
             shrinkResources false // Reproducible builds
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
@@ -232,11 +235,6 @@ def downloadBootstrap(String arch, String expectedChecksum, String version) {
     }
 }
 
-task extractExecutables(type: Exec) {
-    workingDir "$projectDir/src/main/cpp"
-    commandLine './extract-executables.sh'
-}
-
 clean {
     doLast {
         def tree = fileTree(new File(projectDir, 'src/main/cpp'))
@@ -270,13 +268,35 @@ task downloadBootstraps() {
     }
 }
 
+play {
+    serviceAccountCredentials.set(file(System.getenv("ANDROID_PUBLISHING_ACCOUNT_CREDENTIALS")))
+    track.set("alpha")
+}
+
 afterEvaluate {
     android.applicationVariants.all { variant ->
         variant.javaCompileProvider.get().dependsOn(downloadBootstraps)
     }
-}
 
-play {
-    serviceAccountCredentials.set(file(System.getenv("ANDROID_PUBLISHING_ACCOUNT_CREDENTIALS")))
-    track.set("alpha")
+    bundleRelease.doLast {
+        exec {
+            workingDir "$projectDir/build/outputs/bundle/release"
+            commandLine("jarsigner", "-verbose", "-sigalg", "SHA256withRSA", "-digestalg", "SHA-256",
+                "-keystore", System.getenv("ANDROID_UPLOAD_KEYSTORE_FILE"),
+                "-storepass:file", System.getenv("ANDROID_UPLOAD_KEYSTORE_PASS_FILE"),
+                "app-release.aab",
+                System.getenv("ANDROID_UPLOAD_KEYSTORE_ALIAS"))
+        }
+    }
+
+    publishReleaseBundle.doFirst {
+        exec {
+            workingDir "$projectDir/build/outputs/bundle/release"
+            commandLine("jarsigner", "-verbose", "-sigalg", "SHA256withRSA", "-digestalg", "SHA-256",
+                "-keystore", System.getenv("ANDROID_UPLOAD_KEYSTORE_FILE"),
+                "-storepass:file", System.getenv("ANDROID_UPLOAD_KEYSTORE_PASS_FILE"),
+                "app-release.aab",
+                System.getenv("ANDROID_UPLOAD_KEYSTORE_ALIAS"))
+        }
+    }
 }
