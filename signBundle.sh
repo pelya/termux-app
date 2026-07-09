@@ -17,7 +17,7 @@ rm -rf tmp
 mkdir -p tmp
 export GRADLE_OPTS="-Djava.io.tmpdir=`pwd`/tmp"
 
-./gradlew bundleRelease
+./gradlew signReleaseBundleJarsigner
 
 #cd app/build/outputs/bundle/release || exit 1
 
