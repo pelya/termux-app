@@ -1,5 +1,6 @@
 plugins {
     id "com.android.application"
+    id 'com.github.triplet.play' version '4.0.0'
 }
 
 ext {
@@ -13,7 +14,7 @@ ext {
 }
 
 android {
-    namespace "com.termux"
+    namespace "greater.underscore"
 
     compileSdkVersion project.properties.compileSdkVersion.toInteger()
     ndkVersion = System.getenv("JITPACK_NDK_VERSION") ?: project.properties.ndkVersion
@@ -21,6 +22,16 @@ android {
     def apkVersionTag = System.getenv("TERMUX_APK_VERSION_TAG") ?: ""
     def splitAPKsForDebugBuilds = System.getenv("TERMUX_SPLIT_APKS_FOR_DEBUG_BUILDS") ?: "1"
     def splitAPKsForReleaseBuilds = System.getenv("TERMUX_SPLIT_APKS_FOR_RELEASE_BUILDS") ?: "0" // F-Droid does not support split APKs #1904
+
+    buildFeatures {
+        buildConfig = true
+    }
+
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['src/main/cpp/exe']
+        }
+    }
 
     dependencies {
         implementation "androidx.annotation:annotation:1.9.0"
@@ -43,16 +54,16 @@ android {
     defaultConfig {
         minSdkVersion project.properties.minSdkVersion.toInteger()
         targetSdkVersion project.properties.targetSdkVersion.toInteger()
-        versionCode 118
-        versionName "0.118.0"
+        versionCode 1035
+        versionName "0.119.0-beta.15"
 
         if (appVersionName) versionName = appVersionName
         validateVersionName(versionName)
 
         buildConfigField "String", "TERMUX_PACKAGE_VARIANT", "\"" + project.ext.packageVariant + "\"" // Used by TermuxApplication class
 
-        manifestPlaceholders.TERMUX_PACKAGE_NAME = "com.termux"
-        manifestPlaceholders.TERMUX_APP_NAME = "Termux"
+        manifestPlaceholders.TERMUX_PACKAGE_NAME = "greater.underscore"
+        manifestPlaceholders.TERMUX_APP_NAME = ">_"
         manifestPlaceholders.TERMUX_API_APP_NAME = "Termux:API"
         manifestPlaceholders.TERMUX_BOOT_APP_NAME = "Termux:Boot"
         manifestPlaceholders.TERMUX_FLOAT_APP_NAME = "Termux:Float"
@@ -60,12 +71,8 @@ android {
         manifestPlaceholders.TERMUX_TASKER_APP_NAME = "Termux:Tasker"
         manifestPlaceholders.TERMUX_WIDGET_APP_NAME = "Termux:Widget"
 
-        externalNativeBuild {
-            ndkBuild {
-                cFlags "-std=c11", "-Wall", "-Wextra", "-Werror", "-Os", "-fno-stack-protector", "-Wl,--gc-sections"
-            }
-        }
-
+        // ABI splits work poorly with dynamic features
+        /*
         splits {
             abi {
                 enable ((gradle.startParameter.taskNames.any { it.contains("Debug") } && splitAPKsForDebugBuilds == "1") ||
@@ -75,6 +82,7 @@ android {
                 universalApk true
             }
         }
+        */
     }
 
     signingConfigs {
@@ -84,17 +92,33 @@ android {
             storePassword 'xrj45yWGLbsO7W0v'
             keyPassword 'xrj45yWGLbsO7W0v'
         }
+        /*
+        // Disabled because signing the bundle with Gradle makes it run out of RAM and crash
+        release {
+            storeFile file(System.getenv("ANDROID_UPLOAD_KEYSTORE_FILE"))
+            keyAlias System.getenv("ANDROID_UPLOAD_KEYSTORE_ALIAS")
+            storePassword new File(System.getenv("ANDROID_UPLOAD_KEYSTORE_PASS_FILE")).getText('UTF-8')
+            keyPassword new File(System.getenv("ANDROID_UPLOAD_KEYSTORE_PASS_FILE")).getText('UTF-8')
+        }
+        */
     }
 
     buildTypes {
         release {
+            //signingConfig signingConfigs.release
             minifyEnabled true
             shrinkResources false // Reproducible builds
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            packagingOptions {
+                doNotStrip '**/*.so'
+            }
         }
 
         debug {
             signingConfig signingConfigs.debug
+            packagingOptions {
+                doNotStrip '**/*.so'
+            }
         }
     }
 
@@ -102,14 +126,8 @@ android {
         // Flag to enable support for the new language APIs
         coreLibraryDesugaringEnabled true
 
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-
-    externalNativeBuild {
-        ndkBuild {
-            path "src/main/cpp/Android.mk"
-        }
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 
     lint {
@@ -128,17 +146,21 @@ android {
         }
     }
 
-    applicationVariants.all { variant ->
-        variant.outputs.all { output ->
-            if (variant.buildType.name == "debug") {
-                def abi = output.getFilter(com.android.build.OutputFile.ABI)
-                outputFileName = new File("termux-app_" + (apkVersionTag ? apkVersionTag : project.ext.packageVariant + "-" + "debug") + "_" + (abi ? abi : "universal") + ".apk")
-            } else if (variant.buildType.name == "release") {
-                def abi = output.getFilter(com.android.build.OutputFile.ABI)
-                outputFileName = new File("termux-app_" + (apkVersionTag ? apkVersionTag : project.ext.packageVariant + "-" + "release") + "_" + (abi ? abi : "universal") + ".apk")
+    androidComponents {
+        onVariants(selector().all()) { variant ->
+            variant.outputs.forEach { output ->
+                def abiFilter = output.filters.find { it.filterType == com.android.build.api.variant.FilterType.ABI }
+                def abi = abiFilter != null ? abiFilter.identifier : "universal"
+                if (variant.buildType == "debug") {
+                    output.outputFileName.set("termux-app_" + (apkVersionTag ? apkVersionTag : project.ext.packageVariant + "-" + "debug") + "_" + (abi ? abi : "universal") + ".apk")
+                } else if (variant.buildType == "release") {
+                    output.outputFileName.set("termux-app_" + (apkVersionTag ? apkVersionTag : project.ext.packageVariant + "-" + "release") + "_" + (abi ? abi : "universal") + ".apk")
+                }
             }
         }
     }
+
+    dynamicFeatures = [":packages:pkg1", ":packages:pkg2", ":packages:pkg3", ":packages:pkg4", ":packages:pkg5", ":packages:pkg6", ":packages:pkg7", ":packages:pkg8", ":packages:pkg9", ":packages:pkg10", ":packages:pkg11", ":packages:pkg12", ":packages:pkg13", ":packages:pkg14", ":packages:pkg15", ":packages:pkg16", ":packages:pkg17", ":packages:pkg18", ":packages:pkg19", ":packages:pkg20", ":packages:pkg21", ":packages:pkg22", ":packages:pkg23", ":packages:pkg24", ":packages:pkg25", ":packages:pkg26", ":packages:pkg27", ":packages:pkg28", ":packages:pkg29", ":packages:pkg30", ":packages:pkg31", ":packages:pkg32", ":packages:pkg33", ":packages:pkg34", ":packages:pkg35", ":packages:pkg36", ":packages:pkg37", ":packages:pkg38", ":packages:pkg39", ":packages:pkg40", ":packages:pkg41", ":packages:pkg42", ":packages:pkg43", ":packages:pkg44", ":packages:pkg45", ":packages:pkg46", ":packages:pkg47", ":packages:pkg48", ":packages:pkg49", ":packages:pkg50", ":packages:pkg51", ":packages:pkg52", ":packages:pkg53", ":packages:pkg54", ":packages:pkg55", ":packages:pkg56", ":packages:pkg57", ":packages:pkg58", ":packages:pkg59", ":packages:pkg60", ":packages:pkg61", ":packages:pkg62", ":packages:pkg63", ":packages:pkg64", ":packages:pkg65", ":packages:pkg66", ":packages:pkg67", ":packages:pkg68", ":packages:pkg69", ":packages:pkg70", ":packages:pkg71", ":packages:pkg72", ":packages:pkg73", ":packages:pkg74", ":packages:pkg75", ":packages:pkg76", ":packages:pkg77", ":packages:pkg78", ":packages:pkg79", ":packages:pkg80", ":packages:pkg81", ":packages:pkg82", ":packages:pkg83", ":packages:pkg84", ":packages:pkg85", ":packages:pkg86", ":packages:pkg87", ":packages:pkg88", ":packages:pkg89", ":packages:pkg90", ":packages:pkg91", ":packages:pkg92", ":packages:pkg93", ":packages:pkg94", ":packages:pkg95", ":packages:pkg96", ":packages:pkg97", ":packages:pkg98", ":packages:pkg99", ":packages:pkg100", ":packages:pkg101", ":packages:pkg102", ":packages:pkg103", ":packages:pkg104", ":packages:pkg105", ":packages:pkg106", ":packages:pkg107", ":packages:pkg108", ":packages:pkg109", ":packages:pkg110", ":packages:pkg111", ":packages:pkg112", ":packages:pkg113", ":packages:pkg114", ":packages:pkg115", ":packages:pkg116", ":packages:pkg117", ":packages:pkg118", ":packages:pkg119", ":packages:pkg120", ":packages:pkg121", ":packages:pkg122", ":packages:pkg123", ":packages:pkg124", ":packages:pkg125", ":packages:pkg126", ":packages:pkg127"]
 
     buildFeatures {
         buildConfig true
@@ -187,7 +209,7 @@ def downloadBootstrap(String arch, String expectedChecksum, String version) {
         }
     }
 
-    def remoteUrl = "https://github.com/termux/termux-packages/releases/download/bootstrap-" + version + "/bootstrap-" + arch + ".zip"
+    def remoteUrl = "https://github.com/pelya/termux-packages/releases/download/bootstrap-" + version + "/bootstrap-" + arch + ".zip"
     logger.quiet("Downloading " + remoteUrl + " ...")
 
     file.parentFile.mkdirs()
@@ -219,11 +241,11 @@ task downloadBootstraps() {
     doLast {
         def packageVariant = project.ext.packageVariant
         if (packageVariant == "apt-android-7") {
-            def version = "2026.02.12-r1" + "%2B" + "apt.android-7"
-            downloadBootstrap("aarch64", "ea2aeba8819e517db711f8c32369e89e7c52cee73e07930ff91185e1ab93f4f3", version)
-            downloadBootstrap("arm", "a38f4d3b2f735f83be2bf54eff463e86dc32a3e2f9f861c1557c4378d249c018", version)
-            downloadBootstrap("i686", "f5bc0b025b9f3b420b5fcaeefc064f888f5f22a0d6fd7090f4aac0c33eb3555b", version)
-            downloadBootstrap("x86_64", "b7fd0f2e3a4de534be3144f9f91acc768630fc463eaf134ab2e64c545e834f7a", version)
+            def version =  "2025.09.23-pelya1" + "+" + packageVariant
+            downloadBootstrap("aarch64", "72cc3a8cbe132d7d1d420e18e3c2280144502d846f7742f53bde96b39bab8269", version)
+            downloadBootstrap("arm",     "461fff090034eebd0c297526b0211528d24f45cd8d1a3337e993a3a441a855da", version)
+            downloadBootstrap("i686",    "f8787e5d876a7bffcc49052b8ccca11f5b4bfe633b1360cde6eceff8d624440d", version)
+            downloadBootstrap("x86_64",  "afae33395d0b19b6e9cca167bbd84f10ac32d5ca361473985c9882147c2f38a5", version)
         } else if (packageVariant == "apt-android-5") {
             def version = "2022.04.28-r6" + "+" + packageVariant
             downloadBootstrap("aarch64", "913609d439415c828c5640be1b0561467e539cb1c7080662decaaca2fb4820e7", version)
@@ -236,8 +258,33 @@ task downloadBootstraps() {
     }
 }
 
+tasks.register("downloadExtractBootstraps", Exec) {
+    dependsOn("downloadBootstraps")
+    workingDir "$projectDir/src/main/cpp"
+    commandLine "./extract-executables.sh"
+}
+
+tasks.register("signReleaseBundleJarsigner", Exec) {
+    dependsOn("bundleRelease")
+    workingDir "$projectDir/build/outputs/bundle/release"
+    commandLine("jarsigner", "-sigalg", "SHA256withRSA", "-digestalg", "SHA-256",
+        "-keystore", System.getenv("ANDROID_UPLOAD_KEYSTORE_FILE"),
+        "-storepass:file", System.getenv("ANDROID_UPLOAD_KEYSTORE_PASS_FILE"),
+        "app-release.aab",
+        System.getenv("ANDROID_UPLOAD_KEYSTORE_ALIAS"))
+}
+
+play {
+    serviceAccountCredentials.set(file(System.getenv("ANDROID_PUBLISHING_ACCOUNT_CREDENTIALS")))
+    track.set("alpha")
+}
+
 afterEvaluate {
-    android.applicationVariants.all { variant ->
-        variant.javaCompileProvider.get().dependsOn(downloadBootstraps)
+    tasks.named("preBuild") {
+        dependsOn "downloadExtractBootstraps"
+    }
+
+    tasks.named("publishReleaseBundle") {
+        dependsOn "signReleaseBundleJarsigner"
     }
 }

@@ -6,6 +6,7 @@ import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
@@ -20,13 +21,15 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
+import android.util.TypedValue;
 
-import com.termux.R;
+import greater.underscore.R;
 import com.termux.app.api.file.FileReceiverActivity;
 import com.termux.app.terminal.TermuxActivityRootView;
 import com.termux.app.terminal.TermuxTerminalSessionActivityClient;
@@ -64,8 +67,13 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.viewpager.widget.ViewPager;
+import androidx.documentfile.provider.DocumentFile;
 
 import java.util.Arrays;
+import java.io.File;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.FileOutputStream;
 
 /**
  * A terminal emulator activity.
@@ -174,6 +182,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     private int mNavBarHeight;
 
     private float mTerminalToolbarDefaultHeight;
+
+    /** Working directory where termux-setup-storage was launched */
+    private String mSetupStorageDir = null;
 
 
     private static final int CONTEXT_MENU_SELECT_URL_ID = 0;
@@ -789,13 +800,123 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         }.start();
     }
 
+    protected void copyFromScopedStorageToFilesystem(DocumentFile tree, String destination, boolean deleteOriginal) {
+        Logger.logInfo(LOG_TAG, "Copying/moving files from directory " + tree.getName() + " " + tree.getUri());
+
+        File destDir = new File(destination);
+        destDir.mkdirs();
+
+        DocumentFile fileList[] = tree.listFiles();
+        if (fileList == null)
+            return;
+
+        for (DocumentFile f: fileList) {
+            try {
+                if (f.isFile()) {
+                    Logger.logInfo(LOG_TAG, "Found file " + f.getName() + " " + f.getUri());
+                    File copy = File.createTempFile("tmx", null, destDir);
+                    Logger.logInfo(LOG_TAG, "Copying to file: " + copy.getAbsolutePath());
+                    InputStream in = getContentResolver().openInputStream(f.getUri());
+                    OutputStream out = new FileOutputStream(copy);
+                    in.transferTo(out);
+                    in.close();
+                    out.close();
+                    String name = f.getName();
+                    if (deleteOriginal) {
+                        f.delete();
+                        Logger.logInfo(LOG_TAG, "Deleted original file " + name);
+                    }
+                    copy.renameTo(new File(destDir, name));
+                    Logger.logInfo(LOG_TAG, "Renamed new file to " + name);
+                }
+                if (f.isDirectory()) {
+                    copyFromScopedStorageToFilesystem(f, destination + "/" + f.getName(), deleteOriginal);
+                }
+            } catch (Exception e) {
+                Logger.logErrorAndShowToast((Context) this, LOG_TAG, e.getMessage());
+                Logger.logStackTraceWithMessage(LOG_TAG, "Setup Storage Error: Error copying file", e);
+            }
+        }
+        Logger.logInfo(LOG_TAG, "Copying/moving files from " + tree.getName() + " finished");
+    }
+
+    protected void askCopyMoveFilesScopedStorage (DocumentFile tree) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(tree.getName());
+        builder.setIcon(R.drawable.ic_foreground);
+        builder.setMessage(String.valueOf(tree.listFiles().length) +
+            " files are present in " + tree.getName() + ".\n" +
+            "You will need to move or copy them to use them from " +
+            TermuxConstants.TERMUX_APP_NAME + ".\n" +
+            "You can move files to the same folder.\n" +
+            "Destination:\n" +
+            mSetupStorageDir);
+
+        builder.setPositiveButton("Move", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                dialog.cancel();
+                new Thread() {
+                    public void run() {
+                        copyFromScopedStorageToFilesystem(tree, mSetupStorageDir, true);
+                        Logger.showToast(TermuxActivity.this, "Moving files finished", true);
+                    }
+                }.start();
+            }
+        });
+
+        builder.setNegativeButton("Copy", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                dialog.cancel();
+                new Thread() {
+                    public void run() {
+                        copyFromScopedStorageToFilesystem(tree, mSetupStorageDir, false);
+                        Logger.showToast(TermuxActivity.this, "Copying files finished", true);
+                    }
+                }.start();
+            }
+        });
+
+        builder.setNeutralButton("Cancel", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                dialog.cancel();
+            }
+        });
+
+        AlertDialog alert = builder.create();
+        alert.show();
+
+        TypedValue fgColor = new TypedValue();
+        getTheme().resolveAttribute(android.R.attr.colorAccent, fgColor, true);
+        Button btn = alert.getButton(DialogInterface.BUTTON_POSITIVE);
+        btn.setTextColor(fgColor.data);
+        btn = alert.getButton(DialogInterface.BUTTON_NEUTRAL);
+        btn.setTextColor(fgColor.data);
+        btn = alert.getButton(DialogInterface.BUTTON_NEGATIVE);
+        btn.setTextColor(fgColor.data);
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        Logger.logVerbose(LOG_TAG, "onActivityResult: requestCode: " + requestCode + ", resultCode: "  + resultCode + ", data: "  + IntentUtils.getIntentString(data));
+        Logger.logInfo(LOG_TAG, "========");
+        Logger.logInfo(LOG_TAG, "onActivityResult: requestCode: " + requestCode + ", resultCode: "  + resultCode + ", data: "  + IntentUtils.getIntentString(data));
         if (requestCode == PermissionUtils.REQUEST_GRANT_STORAGE_PERMISSION) {
+            if (resultCode == RESULT_OK && data != null && data.getData() != null) {
+                Logger.logInfo(LOG_TAG, "onActivityResult: data.getData(): " + data.getData());
+                getContentResolver().takePersistableUriPermission(data.getData(),
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+
+                DocumentFile tree = DocumentFile.fromTreeUri(this, data.getData());
+                if (mSetupStorageDir != null) {
+                    Logger.logInfo(LOG_TAG, "Directory of termux-setup-storage command: " + mSetupStorageDir);
+                    if (tree.listFiles().length > 0) {
+                        askCopyMoveFilesScopedStorage(tree);
+                    }
+                }
+            }
             requestStoragePermission(true);
         }
+        Logger.logInfo(LOG_TAG, "========");
     }
 
     @Override
@@ -957,6 +1078,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                         return;
                     case TERMUX_ACTIVITY.ACTION_REQUEST_PERMISSIONS:
                         Logger.logDebug(LOG_TAG, "Received intent to request storage permissions");
+                        mSetupStorageDir = intent.getStringExtra(TERMUX_ACTIVITY.EXTRA_CURRENT_DIR);
                         requestStoragePermission(false);
                         return;
                     default:

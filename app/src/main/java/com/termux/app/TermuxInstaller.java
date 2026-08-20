@@ -10,7 +10,7 @@ import android.system.Os;
 import android.util.Pair;
 import android.view.WindowManager;
 
-import com.termux.R;
+import greater.underscore.R;
 import com.termux.shared.file.FileUtils;
 import com.termux.shared.termux.crash.TermuxCrashUtils;
 import com.termux.shared.termux.file.TermuxFileUtils;
@@ -26,8 +26,10 @@ import com.termux.shared.termux.shell.command.environment.TermuxShellEnvironment
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -102,6 +104,32 @@ final class TermuxInstaller {
             return;
         }
 
+        String exeSymlink = new File(TERMUX_PREFIX_DIR_PATH + "/../../exe").getAbsolutePath();
+        String oldExeSymlink = "";
+
+        try {
+            oldExeSymlink = Os.readlink(exeSymlink);
+        } catch (final Exception e) {
+        }
+
+        if (!oldExeSymlink.equals(activity.getApplicationInfo().nativeLibraryDir)) {
+            Logger.logInfo(LOG_TAG, "Creating symlink to executables directory: " +
+                activity.getApplicationInfo().nativeLibraryDir + " at " + exeSymlink);
+            try {
+                Os.remove(exeSymlink);
+            } catch (final Exception ee) {
+            }
+            try {
+                Os.symlink(activity.getApplicationInfo().nativeLibraryDir, exeSymlink);
+            } catch (final Exception eee) {
+            }
+        } else {
+            Logger.logInfo(LOG_TAG, "Symlink to executables directory already created: " +
+                activity.getApplicationInfo().nativeLibraryDir + " at " + exeSymlink);
+        }
+
+        // TODO: overwrite individual files instead of deleting /usr to support .apk version update
+
         // If prefix directory exists, even if its a symlink to a valid directory and symlink is not broken/dangling
         if (FileUtils.directoryFileExists(TERMUX_PREFIX_DIR_PATH, true)) {
             if (TermuxFileUtils.isTermuxPrefixDirectoryEmpty()) {
@@ -156,8 +184,7 @@ final class TermuxInstaller {
                     final byte[] buffer = new byte[8096];
                     final List<Pair<String, String>> symlinks = new ArrayList<>(50);
 
-                    final byte[] zipBytes = loadZipBytes();
-                    try (ZipInputStream zipInput = new ZipInputStream(new ByteArrayInputStream(zipBytes))) {
+                    try (ZipInputStream zipInput = new ZipInputStream(loadBootstrapZip(activity))) {
                         ZipEntry zipEntry;
                         while ((zipEntry = zipInput.getNextEntry()) != null) {
                             if (zipEntry.getName().equals("SYMLINKS.txt")) {
@@ -220,6 +247,8 @@ final class TermuxInstaller {
 
                     // Recreate env file since termux prefix was wiped earlier
                     TermuxShellEnvironment.writeEnvironmentToFile(activity);
+
+                    setupStorageSymlinks(activity);
 
                     activity.runOnUiThread(whenDone);
 
@@ -375,12 +404,7 @@ final class TermuxInstaller {
         return FileUtils.createDirectoryFile(directory.getAbsolutePath());
     }
 
-    public static byte[] loadZipBytes() {
-        // Only load the shared library when necessary to save memory usage.
-        System.loadLibrary("termux-bootstrap");
-        return getZip();
+    public static InputStream loadBootstrapZip(final Activity activity) throws Exception {
+        return new FileInputStream(activity.getApplicationInfo().nativeLibraryDir + "/libtermux-bootstrap.so");
     }
-
-    public static native byte[] getZip();
-
 }

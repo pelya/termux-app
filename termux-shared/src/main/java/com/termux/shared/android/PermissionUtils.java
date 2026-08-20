@@ -12,6 +12,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.os.PowerManager;
+import android.os.storage.StorageManager;
 import android.provider.Settings;
 
 import androidx.annotation.NonNull;
@@ -379,6 +380,24 @@ public class PermissionUtils {
         }
 
         return null;
+    }
+
+    public static Error requestManageScopedStorage(@NonNull Context context, int requestCode) {
+        Logger.logInfo(LOG_TAG, "Requesting scoped storage access to a directory tree, requestCode " + String.valueOf(requestCode));
+
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            StorageManager storageManager = (StorageManager) context.getSystemService(Context.STORAGE_SERVICE);
+            intent = storageManager.getPrimaryStorageVolume().createOpenDocumentTreeIntent();
+        }
+
+        Error error = null;
+        if (requestCode >=0)
+            error = ActivityUtils.startActivityForResult(context, requestCode, intent, true, false);
+        else
+            error = ActivityUtils.startActivity(context, intent, true, false);
+
+        return error;
     }
 
     /**

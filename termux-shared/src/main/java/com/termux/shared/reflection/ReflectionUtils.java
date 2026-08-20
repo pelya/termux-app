@@ -7,7 +7,7 @@ import androidx.annotation.Nullable;
 
 import com.termux.shared.logger.Logger;
 
-import org.lsposed.hiddenapibypass.HiddenApiBypass;
+//import org.lsposed.hiddenapibypass.HiddenApiBypass;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -26,6 +26,7 @@ public class ReflectionUtils {
      * https://developer.android.com/guide/app-compatibility/restrictions-non-sdk-interfaces
      */
     public static void bypassHiddenAPIReflectionRestrictions() {
+        /*
         if (!HIDDEN_API_REFLECTION_RESTRICTIONS_BYPASSED && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             Logger.logDebug(LOG_TAG, "Bypassing android hidden api reflection restrictions");
             try {
@@ -36,6 +37,7 @@ public class ReflectionUtils {
 
             HIDDEN_API_REFLECTION_RESTRICTIONS_BYPASSED = true;
         }
+        */
     }
 
     /** Check if android hidden API reflection restrictions are bypassed. */

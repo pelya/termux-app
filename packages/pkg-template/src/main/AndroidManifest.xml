@@ -1,0 +1,17 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:dist="http://schemas.android.com/apk/distribution"
+    android:isFeatureSplit="true">
+    <dist:module
+        dist:title="@string/packages_pkg0"
+        dist:instant="false">
+        <dist:delivery>
+            <dist:on-demand />
+        </dist:delivery>
+        <dist:fusing
+            dist:include="false">
+        </dist:fusing>
+    </dist:module>
+    <application
+        android:hasCode="false">
+    </application>
+</manifest>
