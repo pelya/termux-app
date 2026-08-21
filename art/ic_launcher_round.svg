@@ -3,7 +3,7 @@
    viewBox="0 0 48 48"
    version="1.1"
    id="svg2"
-   sodipodi:docname="ic_launcher.svg"
+   sodipodi:docname="ic_launcher_round.svg"
    inkscape:version="1.4 (e7c3feb100, 2024-10-09)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -21,8 +21,8 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:zoom="9.2365823"
-     inkscape:cx="27.661747"
-     inkscape:cy="26.2543"
+     inkscape:cx="27.553482"
+     inkscape:cy="26.362565"
      inkscape:window-width="1488"
      inkscape:window-height="836"
      inkscape:window-x="0"
@@ -30,20 +30,21 @@
      inkscape:window-maximized="1"
      inkscape:current-layer="svg2" />
   <!-- Screen and border. -->
-  <path
-     fill="#000"
-     stroke="#BFCBCD"
-     stroke-width="2"
-     d="M9,6              l30,0              q3 0,3 3              l0,30              q0 3, -3 3              l-30,0              q-3 0, -3-3              l0 -30              q0 -3, 3 -3"
-     id="path1" />
   <!-- Block cursor. -->
+  <ellipse
+     style="fill:#000000;stroke:#c8b7b7"
+     id="path1"
+     cx="24"
+     cy="24"
+     rx="19"
+     ry="19" />
   <text
      xml:space="preserve"
      style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:26.6667px;line-height:1;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans Bold';text-align:start;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:start;white-space:pre;inline-size:36.2114;fill:#00ff00;stroke:#000000"
      x="6.3876443"
      y="29.123327"
      id="text3"
-     transform="translate(4.2223409,1.5157121)"
+     transform="translate(3.6810152,1.6239772)"
      inkscape:transform-center-y="-0.32479546"><tspan
        x="6.3876443"
        y="29.123327"
